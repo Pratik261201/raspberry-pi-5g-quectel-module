@@ -1,239 +1,185 @@
 ````markdown
-# Raspberry Pi 5G with Quectel RM520N-GL PCIe HAT+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/<your-username>/raspberry-pi-5g-quectel-module/main/images-results/banner.gif" alt="Raspberry Pi 5G" width="800"/>
+</p>
 
-Enable 5G internet on Raspberry Pi 5 using the Quectel RM520N-GL PCIe to 5G HAT+. This README walks you through hardware requirements, setup steps, PCIe enablement, DIP-switch control, kernel update, and internet dial-up.
+# 🚀 Raspberry Pi 5G with Quectel RM520N-GL PCIe HAT+
+
+> **Enable blazing-fast 5G internet on your Raspberry Pi 5!**  
+> Use the Quectel RM520N-GL PCIe-to-5G HAT+ to get truly mobile connectivity for IoT, remote monitoring, or backup networking.
+
+---
+
+<p align="center">
+  <a href="#hardware-requirements">Hardware</a> •
+  <a href="#installation">Install OS</a> •
+  <a href="#pcie-support">PCIe</a> •
+  <a href="#dip-switch-control">DIP Switch</a> •
+  <a href="#kernel-update">Kernel</a> •
+  <a href="#dialup">Dial-up</a> •
+  <a href="#fallback-usb-mode">Fallback</a>
+</p>
 
 ---
 
 ## 📦 Hardware Requirements
 
-- **Raspberry Pi 5**  
-  [Buy on Raspberry Pi Store](https://www.raspberrypi.com/products/raspberry-pi-5/)  
-- **USB Keyboard & Mouse**  
-  [Buy on Amazon India](https://www.amazon.in/s?k=usb+keyboard+mouse)  
-- **HDMI Monitor**  
-  [Buy on Amazon India](https://www.amazon.in/s?k=hdmi+monitor)  
-- **Boot-ready SD Card (16 GB or more)**  
-  [Buy on Amazon India](https://www.amazon.in/s?k=raspberry+pi+boot+sd+card)  
-- **Quectel RM520N-GL PCIe to 5G HAT+**  
-  [Buy from Waveshare](https://www.waveshare.com/pcie-to-5g-hat-plus.htm)  
+| Item                             | Description & Purchase Link                                                 |
+|----------------------------------|-------------------------------------------------------------------------------|
+| 🎛️ Raspberry Pi 5                | [Buy on Raspberry Pi Store](https://www.raspberrypi.com/products/raspberry-pi-5/) |
+| ⌨️ USB Keyboard & Mouse          | [Buy on Amazon India](https://www.amazon.in/s?k=usb+keyboard+mouse)             |
+| 📺 HDMI Monitor                  | [Buy on Amazon India](https://www.amazon.in/s?k=hdmi+monitor)                  |
+| 💽 Boot-ready SD Card (≥16 GB)    | [Buy on Amazon India](https://www.amazon.in/s?k=raspberry+pi+boot+sd+card)     |
+| 📡 Quectel RM520N-GL PCIe HAT+   | [Buy from Waveshare](https://www.waveshare.com/pcie-to-5g-hat-plus.htm)        |
 
 ---
 
-## 📋 Table of Contents
+## 🔧 1. Install Raspberry Pi OS
 
-1. [Install Raspberry Pi OS](#install-raspberry-pi-os)  
-2. [Enable PCIe Support](#enable-pcie-support)  
-3. [DIP Switch Control](#dip-switch-control)  
-4. [Reset / Power On-Off Module with Code](#reset--power-on-off-module-with-code)  
-5. [Update Kernel](#update-kernel)  
-6. [Verify Kernel & PCIe Detection](#verify-kernel--pcie-detection)  
-7. [Dial-up to the Internet](#dial-up-to-the-internet)  
-8. [Power Monitoring](#power-monitoring)  
-9. [Dial-up Test](#dial-up-test)  
-
----
-
-## 1. Install Raspberry Pi OS
-
-1. Download **Raspberry Pi Imager** from the [official site](https://www.raspberrypi.com/software/).  
+1. Download **Raspberry Pi Imager**:  
+   <https://www.raspberrypi.com/software/>  
 2. Flash **Raspberry Pi OS (64-bit)** onto your SD card.  
-3. Insert the SD card, connect keyboard, mouse, monitor, and power on the Pi.  
-4. Complete first-boot setup (locale, Wi-Fi, password).
+3. Insert SD card, connect peripherals, and power on.  
+4. Complete setup (locale, Wi-Fi, password).
+
+<details>
+<summary>📺 Animated Preview</summary>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/<your-username>/raspberry-pi-5g-quectel-module/main/images-results/os-install.gif" alt="OS Install Animation" width="600"/>
+</p>
+</details>
 
 ---
 
-## 2. Enable PCIe Support
+## ⚙️ 2. Enable PCIe Support
 
-1. Open `config.txt`:
+```bash
+sudo nano /boot/firmware/config.txt
+# Add at EOF:
+dtparam=pciex1
+dtoverlay=pciex1-debug
+sudo reboot
+````
 
-    ```bash
-    sudo nano /boot/firmware/config.txt
-    ```
-
-2. Add at the end:
-
-    ```ini
-    dtparam=pciex1
-    dtoverlay=pciex1-debug
-    ```
-
-3. Save & reboot:
-
-    ```bash
-    sudo reboot
-    ```
+<details>
+<summary>🖼️ View PCIe Enablement</summary>
+<p align="center">
+  <img src="images-results/pcie-enable.png" alt="PCIe Config" width="600"/>
+</p>
+</details>
 
 ---
 
-## 3. DIP Switch Control
+## 🎚️ 3. DIP Switch Control
 
-The RM520N-GL HAT has two DIP switches on GPIO5 (RST) and GPIO6 (PWR).  
-- **Default**: RST = ON, PWR = OFF  
-- Control reset/power via GPIO when Pi restarts.
+* **RST** (GPIO 6): ON
+* **PWR** (GPIO 5): OFF
 
-![PCIe HAT+ DIP Switches](images-results/PCIe-TO-5G-HAT+-DIP.png)
+<p align="center">
+  <img src="images-results/PCIe-TO-5G-HAT+-DIP.png" alt="DIP Switches" width="500"/>
+</p>
+
+<details>
+<summary>🔄 Collapse/Expand Details</summary>
+Adjust switches to control module reset/power via GPIO on Pi reboot.
+</details>
 
 ---
 
-## 4. Reset / Power On-Off Module with Code
-
-Use **gpiozero** in Python to toggle RST/PWR:
+## 🔄 4. Reset / Power ON-OFF with Code
 
 ```python
-import time
 from gpiozero import LED
+import time
 
-# led = LED(5)  # Control PWR
-led = LED(6)    # Control RST
-
+led = LED(6)    # RST
 led.on()        # HIGH → reset/power on
 time.sleep(0.5)
 led.off()       # LOW → normal
-````
+```
 
 ---
 
-## 5. Update Kernel
+## ⚡ 5. Update Kernel
 
-1. Run Waveshare’s one-key installer (5–10 min):
-
-   ```bash
-   wget -O - https://files.waveshare.com/wiki/PCIe-TO-5G-HAT%2B/install.sh | sudo bash
-   ```
-
-2. After auto-reboot, verify:
-
-   ```bash
-   uname --all
-   ```
+```bash
+wget -O - https://files.waveshare.com/wiki/PCIe-TO-5G-HAT%2B/install.sh | sudo bash
+# Wait ~5–10 min for auto-reboot
+uname --all
+```
 
 ---
 
-## 6. Verify Kernel & PCIe Detection
+## ✅ 6. Verify PCIe & Kernel
 
-1. Check PCIe device:
-
-   ```bash
-   lspci
-   ```
-
-   Expected:
-
-   ```
-   02:00.0 Network controller: Qualcomm Device 0306 (rev 01)
-   ```
-
-2. Or via dmesg:
-
-   ```bash
-   dmesg | grep -i pcie
-   ```
+```bash
+lspci
+# Expect: Qualcomm Device 0306 (rev 01)
+dmesg | grep -i pcie
+```
 
 ---
 
-## 7. Dial-up to the Internet
-
-Use Waveshare’s dial-up tool:
+## 📞 7. Dial-up to the Internet
 
 ```bash
 sudo waveshare-CM
 ```
 
-![Results of Running waveshare-CM](images-resultswaveshare-cm.png)
+<p align="center">
+  <img src="images-results/dialup-demo.gif" alt="Dial-up Animation" width="600"/>
+</p>
 
 ---
 
-## 8. Power Monitoring
+## 🔋 8. Power Monitoring (INA219)
 
-The onboard INA219 chip monitors 5 V input:
-
-1. Download demo:
-
-   ```bash
-   wget https://files.waveshare.com/wiki/PCIe-TO-5G-HAT%2B/PCIe_TO_M.2_HAT%2B.zip
-   unzip -o PCIe_TO_M.2_HAT+.zip -d ./PCIe_TO_M.2_HAT+
-   cd PCIe_TO_M.2_HAT+
-   sudo python INA219.py
-   ```
-
-2. Default I²C address: `0x40` (changeable via back resistor).
+```bash
+wget https://files.waveshare.com/wiki/PCIe-TO-5G-HAT%2B/PCIe_TO_M.2_HAT%2B.zip
+unzip -o PCIe_TO_M.2_HAT+.zip -d ./demo
+cd demo
+sudo python INA219.py
+```
 
 ---
 
-## 9. Dial-up Test
-
-After PCIe mode is up and kernel is loaded, run:
+## 📡 9. Dial-up Test
 
 ```bash
 sudo waveshare-CM
+# Watch PPP negotiation → Online!
 ```
 
-You should see PPP negotiation and be online.
-
 ---
 
-> **You’re Done!**
-> Your Raspberry Pi 5 is now connected via 5G through the Quectel RM520N-GL PCIe HAT+.
+## 🔄 Fallback: USB Mode via Windows & PuTTY
 
+1. **Switch to USB Mode**
 
-Speed Test :
-![Speed Test Results](images-results/speedtest.png)
----
-
-
-Assigned IP : 
-
-![Speed Test Results](images-results/config.png)
-````markdown
-## 🔄 Fallback: Switch to USB Mode via Windows & PuTTY
-
-If you encounter any PCIe-related errors on the Raspberry Pi, you can switch the RM520N-GL back to USB mode using a Windows PC and PuTTY:
-
-1. **Connect the Module to Windows**  
-   – Use the USB-C port on the RM520N-GL board and a USB-C cable.
-
-2. **Open PuTTY**  
-   – Connection Type: **Serial**  
-   – Serial line: the “AT Port” COM number (e.g., COM3)  
-   – Speed: **115200**  
-   – Click **Open**  
-
-3. **Switch to USB Mode**  
    ```text
    AT+QCFG="data_interface",0,0
    AT+QCFG="usbnet",2
-````
-
-Both should return `OK`.
-
-4. **Verify Signal & Registration**
+   ```
+2. **AT Commands**
 
    ```text
-   AT                ← Check modem responds (OK)
-   AT+CSQ           ← Check signal strength (+CSQ: <rssi>,99; rssi > 10)
-   AT+CPIN?         ← SIM status (READY)
-   AT+COPS?         ← Network registration status
-   AT+COPS=0        ← Auto-register if not already
-   AT+CGDCONT=1,"IP","jionet"  ← Set APN
+   AT
+   AT+CSQ        # Signal ≥10
+   AT+CPIN?      # SIM READY
+   AT+COPS?      # Reg status
+   AT+CGDCONT=1,"IP","jionet"
    ```
+3. **Revert to PCIe**
+   Flip DIP, reconnect to Pi, then `sudo waveshare-CM`.
 
-   – Ensure `+CSQ:` value is ≥ 10 (and not 99).
-   – In Windows **Settings → Network & Internet → Cellular**, add both “Internet” and “Normal” APNs if required.
+---
 
-For more AT Commands Go through Documents Folder and also check this link https://www.waveshare.com/wiki/RM520N-GL_5G_HAT+
+## 🎉 You’re Done!
 
+Your Raspberry Pi 5 now enjoys high-speed 5G through Quectel RM520N-GL.
+Enjoy seamless mobile connectivity!
 
-5. **Reboot & Test**
-   – Unplug the USB cable, flip the DIP switches back for PCIe mode, and reconnect to the Raspberry Pi.
-   – On the Pi, re-enter PCIe mode and APN via AT commands (using a USB serial adapter or Waveshare’s USB-C cable and `minicom`/`screen`).
-   – Finally, run:
-
-   ```bash
-   sudo waveshare-CM
-   ```
-
-   – Confirm PPP negotiation and Internet connectivity.
-
-```
+<p align="center">
+  <img src="https://raw.githubusercontent.com/<your-username>/raspberry-pi-5g-quectel-module/main/images-results/success.gif" alt="Success" width="400"/>
+</p>
 ```
