@@ -1,4 +1,4 @@
-````markdown
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/<your-username>/raspberry-pi-5g-quectel-module/main/images-results/banner.gif" alt="Raspberry Pi 5G" width="800"/>
 </p>
